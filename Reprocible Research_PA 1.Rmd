@@ -1,0 +1,131 @@
+---
+title: "Reproducible Research_Peer Assessment 1"
+output: html_document
+---
+
+We will use tools from these two R packages.
+```{r, result=FALSE}
+library(dplyr)
+library(lubridate)
+```
+
+### Import 'activity' dataset
+  We want to transform **date** to a time data type and call it **day**. Then the data frame table used for   analysis below will be "activity".
+```{r Import dataset}
+
+temp <- tempfile()
+download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip",temp)
+mydf <- read.csv(unzip(temp))
+#mydf <- read.csv("~/Desktop/Data Science - Coursera/Reproducible Research 2015/activity.csv")
+tbl_df(mydf)
+activity <- mutate(tbl_df(mydf), day = ymd(date))
+activity <- select(activity, steps, interval, day)
+
+```
+
+## What is mean total number of steps taken per day? 
+  For this part of the assignment, we ignore the missing values in the dataset.The mean number of steps is 10766 steps.
+```{r}
+by_day <- group_by(activity, day)
+monthly_walking_pattern <- summarize(by_day, daily_total=sum(steps))
+```
+
+
+### 1. Histogram 
+```{r}
+
+hist(monthly_walking_pattern$daily_total, xlab= 'Daily Total Steps',main = 'Total Number of Steps taken Each Day')
+
+```
+
+### 2. Calculate and report the mean and median total number of steps taken per day.
+```{r}
+summarize(monthly_walking_pattern, average = mean(daily_total, na.rm=TRUE), median = median(daily_total, na.rm = TRUE))
+```
+
+##What is the average daily activity pattern?
+
+###1. Time Series Plot 
+
+```{r, echo=TRUE}
+by_interval <- group_by(activity, interval)
+daily_walking_pattern <- summarize(by_interval, Number_of_Steps = mean(steps, na.rm = TRUE))
+plot(daily_walking_pattern, type = 'l', xlab = '5-Minute Interval', ylab = 'Ave Steps Taken')
+```
+
+###2. Maximum *activity* at 8:35AM
+  The 5-minute interval corresponding to around 8:35 AM - average across all the days in the dataset - contains the maximum number of steps: approximately 206 steps.
+
+```{r}
+filter(daily_walking_pattern, Number_of_Steps == max(Number_of_Steps))
+```
+
+##Imputing missing values
+
+###1. 2304 rows of missing data 
+  The plot shows the missing data resides in 8 days across two months. 288*8=2304
+
+```{r}
+missing <- filter(activity, is.na(steps)==TRUE) 
+missing
+miss_data<- summarize(by_day, count=n(), missing_int = sum(is.na(steps)))
+plot(miss_data$day,miss_data$missing_int, ylab = 'Number of Missing Rows', xlab='Date')
+```
+
+###2. Strategy for filling in the missing values
+  We will use the **mean number of steps for the corresponding 5-minute** interval to impute the missing values. The complete dataset will be named *activity_imputed*.
+
+
+```{r}
+fill_with <- summarize(by_interval, Number_of_Steps = mean(steps, na.rm = TRUE))
+activity_imputed <- activity
+i=1
+while( i <= nrow(missing))
+{   
+  missing[i,1] = fill_with[which(fill_with$interval==as.numeric(missing[i,2])),2]
+  i= i+1
+}
+
+activity_imputed[is.na(activity$steps),1] = missing[,1]
+activity_imputed
+summary(activity_imputed)
+
+```
+
+
+### Revised analysis with imputed dataset.
+  Using the imputed dataset, we see that the **mean** and the **median** daily total number of steps are the same. This was not the case with the missing data. Filling in the missing values with the average has made the distribution of *steps* across *intervals* more symmetric, i.e., less skewed.
+
+```{r}
+by_day <- group_by(activity_imputed, day)
+monthly_walking_pattern_imputed <- summarize(by_day, daily_total=sum(steps))
+hist(monthly_walking_pattern_imputed$daily_total, xlab= 'Daily Total Steps',main = 'Total Number of Steps taken Each Day (imputed data)')
+summarize(monthly_walking_pattern_imputed, average = mean(daily_total), median = median(daily_total))
+```
+
+
+###Are there differences in activity patterns between weekdays and weekends?
+  Comparison of the two time series plots below shows that, on the weekends, there are more *activity* through out the 24 hours period. 
+```{r}
+
+activity_imputed <- mutate(activity_imputed, weekend = weekdays(day)=="Sunday"|weekdays(day)=="Saturday")
+summary(activity_imputed)
+weekend_days <- filter(activity_imputed, weekend == TRUE)
+weekday_days <- filter(activity_imputed, weekend == FALSE)
+
+by_interval_weekend_days <- group_by(weekend_days,interval)
+by_interval_weekday_days <- group_by(weekday_days,interval)
+
+weekend_plot <- summarize(by_interval_weekend_days, number_of_steps = mean(steps) )
+weekday_plot <- summarize(by_interval_weekday_days, number_of_steps = mean(steps))
+
+
+par(mfrow=c(2,1))
+plot(weekend_plot$interval, weekend_plot$number_of_steps, type = 'l', xlab = 'Interval', ylab = 'Number of Steps', main = 'Weekend')
+plot(weekday_plot$interval, weekday_plot$number_of_steps, type = 'l', xlab = 'Interval', ylab = 'Number of Steps', main = 'Weekdays')
+
+```
+
+
+
+
