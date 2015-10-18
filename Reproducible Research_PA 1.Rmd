@@ -120,7 +120,7 @@ by_interval_weekday_days <- group_by(weekday_days,interval)
 weekend_plot <- summarize(by_interval_weekend_days, number_of_steps = mean(steps) )
 weekday_plot <- summarize(by_interval_weekday_days, number_of_steps = mean(steps))
 
-
+png('Activity.png')
 par(mfrow=c(2,1))
 plot(weekend_plot$interval, weekend_plot$number_of_steps, type = 'l', xlab = 'Interval', ylab = 'Number of Steps', main = 'Weekend')
 plot(weekday_plot$interval, weekday_plot$number_of_steps, type = 'l', xlab = 'Interval', ylab = 'Number of Steps', main = 'Weekdays')
