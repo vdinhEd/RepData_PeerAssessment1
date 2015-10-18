@@ -5,6 +5,7 @@ output: html_document
 
 We will use tools from these two R packages.
 ```{r, result=FALSE}
+library(knitr)
 library(dplyr)
 library(lubridate)
 ```
