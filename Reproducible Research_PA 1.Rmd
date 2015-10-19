@@ -8,6 +8,7 @@ We will use tools from  R packages.
 library(knitr)
 library(dplyr)
 library(lubridate)
+setwd('/Users/vudinh/Desktop/Data Science - Coursera/Reproducible Research 2015/RepData_PeerAssessment1')
 ```
 
 ### Import 'activity' dataset
